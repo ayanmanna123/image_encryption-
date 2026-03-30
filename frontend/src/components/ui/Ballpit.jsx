@@ -738,7 +738,7 @@ const Ballpit = ({ className = '', followCursor = true, ...props }) => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [props.colors, followCursor]);
 
   return <canvas className={`${className} w-full h-full`} ref={canvasRef} />;
 };

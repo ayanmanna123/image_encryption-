@@ -7,8 +7,16 @@ import VideoProcessor from './components/VideoProcessor/VideoProcessor';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileImage, Type, Video } from 'lucide-react';
 import Ballpit from '@/components/ui/Ballpit';
+import { useTheme } from './components/ThemeProvider';
 
 function App() {
+  const { theme } = useTheme();
+
+  // Theme-aware colors for Ballpit
+  const darkColors = [0x6366f1, 0x8b5cf6, 0x06b6d4]; // indigo, violet, cyan (glowing)
+  const lightColors = [0x3b82f6, 0x4f46e5, 0x64748b]; // blue, indigo, slate (muted)
+  const ballColors = theme === 'dark' ? darkColors : lightColors;
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 md:p-8 animate-in fade-in duration-700 overflow-x-hidden">
       <div className="w-full max-w-4xl flex flex-col gap-8">
@@ -56,7 +64,7 @@ function App() {
           friction={0.9975}
           wallBounce={0.95}
           followCursor={false}
-          colors={[0x10b981, 0x6366f1, 0x3b82f6]}
+          colors={ballColors}
         />
       </div>
     </div>
