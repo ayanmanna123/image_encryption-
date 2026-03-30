@@ -2,16 +2,18 @@ import React from 'react';
 import { Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const FileUploader = ({ activeTab, fileInputRef, onFileChange, label, id }) => {
+const FileUploader = ({ activeTab, fileInputRef, onFileChange, label, id, accept = "image/*" }) => {
   const currentLabel = label || (activeTab === 'encrypt' ? 'Upload Image to Encrypt' : 
                                activeTab === 'stego_encode' ? 'Upload Secret Image' :
                                activeTab === 'stego_decode' ? 'Upload Stego Image' :
                                'Upload Encrypted Image');
   
+  const inputId = id || `file-input-${activeTab}`;
+
   return (
     <motion.div 
       className="group relative flex flex-col items-center justify-center border-2 border-dashed border-muted hover:border-primary transition-colors hover:bg-accent/50 cursor-pointer rounded-xl p-8 mb-4 bg-card"
-      onClick={() => document.getElementById(id || 'file-input').click()}
+      onClick={() => document.getElementById(inputId).click()}
       whileHover={{ scale: 1.005 }}
       whileTap={{ scale: 0.995 }}
     >
@@ -23,12 +25,12 @@ const FileUploader = ({ activeTab, fileInputRef, onFileChange, label, id }) => {
       </h3>
       <p className="text-xs text-muted-foreground group-hover:text-primary transition-colors">Drag and drop or click to browse</p>
       <input 
-        id={id || 'file-input'}
+        id={inputId}
         type="file" 
         hidden 
         ref={fileInputRef} 
         onChange={onFileChange} 
-        accept="image/*"
+        accept={accept}
       />
     </motion.div>
   );

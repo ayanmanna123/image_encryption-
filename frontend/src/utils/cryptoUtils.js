@@ -17,15 +17,17 @@ export const generatePRNG = (seed) => {
   };
 };
 
-export const encryptDecryptImage = async (file, secretKey) => {
-  // 1. Generate key hash and seed for PRNG
+const getSeedFromKey = async (secretKey) => {
   const msgUint8 = new TextEncoder().encode(secretKey);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
   const hashArray = new Uint8Array(hashBuffer);
-  
-  // Use the first 4 bytes of the hash as a 32-bit seed
   const view = new DataView(hashArray.buffer);
-  const seed = view.getUint32(0);
+  return view.getUint32(0);
+};
+
+export const encryptDecryptImage = async (file, secretKey) => {
+  // 1. Generate key hash and seed for PRNG
+  const seed = await getSeedFromKey(secretKey);
 
   const prng = generatePRNG(seed);
 
@@ -63,11 +65,7 @@ export const encryptDecryptImage = async (file, secretKey) => {
 
 export const encryptDecryptText = async (text, secretKey, isDecrypting = false) => {
   // 1. Generate key hash and seed for PRNG
-  const msgUint8 = new TextEncoder().encode(secretKey);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-  const hashArray = new Uint8Array(hashBuffer);
-  const view = new DataView(hashArray.buffer);
-  const seed = view.getUint32(0);
+  const seed = await getSeedFromKey(secretKey);
   const prng = generatePRNG(seed);
 
   let inputData;
@@ -106,9 +104,7 @@ export const encryptDecryptText = async (text, secretKey, isDecrypting = false) 
  */
 export const hideImageInImage = async (secretFile, coverFile, secretKey) => {
   // 1. Setup PRNG for encryption
-  const msgUint8 = new TextEncoder().encode(secretKey);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-  const seed = new DataView(hashBuffer).getUint32(0);
+  const seed = await getSeedFromKey(secretKey);
   const prng = generatePRNG(seed);
 
   // 2. Load images
@@ -189,9 +185,7 @@ export const hideImageInImage = async (secretFile, coverFile, secretKey) => {
  * Extracts a hidden image from a stego image using a secret key.
  */
 export const extractImageFromImage = async (stegoFile, secretKey) => {
-  const msgUint8 = new TextEncoder().encode(secretKey);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-  const seed = new DataView(hashBuffer).getUint32(0);
+  const seed = await getSeedFromKey(secretKey);
   const prng = generatePRNG(seed);
 
   const img = await loadImage(stegoFile);
@@ -253,4 +247,24 @@ export const extractImageFromImage = async (stegoFile, secretKey) => {
   return new Promise((resolve) => {
     secretCanvas.toBlob((blob) => resolve(blob), 'image/png');
   });
+};
+
+/**
+ * Generic File Encryption/Decryption: Works for any file type (video, zip, etc.)
+ * by XORing the entire ArrayBuffer.
+ */
+export const encryptDecryptFile = async (file, secretKey) => {
+  const seed = await getSeedFromKey(secretKey);
+  const prng = generatePRNG(seed);
+
+  const arrayBuffer = await file.arrayBuffer();
+  const data = new Uint8Array(arrayBuffer);
+
+  const result = new Uint8Array(data.length);
+  for (let i = 0; i < data.length; i++) {
+    const randomByte = Math.floor(prng() * 256);
+    result[i] = data[i] ^ randomByte;
+  }
+
+  return new Blob([result], { type: file.type });
 };

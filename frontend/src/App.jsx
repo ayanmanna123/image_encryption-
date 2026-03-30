@@ -3,8 +3,9 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import ImageProcessor from './components/ImageProcessor/ImageProcessor';
 import TextProcessor from './components/TextProcessor/TextProcessor';
+import VideoProcessor from './components/VideoProcessor/VideoProcessor';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileImage, Type } from 'lucide-react';
+import { FileImage, Type, Video } from 'lucide-react';
 
 function App() {
   return (
@@ -14,14 +15,18 @@ function App() {
         
         <Tabs defaultValue="image" className="w-full">
           <div className="flex justify-center mb-6">
-            <TabsList className="grid w-80 grid-cols-2 h-11 bg-muted/30 p-1 backdrop-blur-sm border border-muted/20 shadow-sm">
+            <TabsList className="grid w-full max-w-md grid-cols-3 h-11 bg-muted/30 p-1 backdrop-blur-sm border border-muted/20 shadow-sm">
               <TabsTrigger value="image" className="flex items-center gap-2 font-semibold transition-all data-[state=active]:shadow-md">
                 <FileImage size={16} />
-                Image Cipher
+                Image
               </TabsTrigger>
               <TabsTrigger value="text" className="flex items-center gap-2 font-semibold transition-all data-[state=active]:shadow-md">
                 <Type size={16} />
-                Text Cipher
+                Text
+              </TabsTrigger>
+              <TabsTrigger value="video" className="flex items-center gap-2 font-semibold transition-all data-[state=active]:shadow-md">
+                <Video size={16} />
+                Video
               </TabsTrigger>
             </TabsList>
           </div>
@@ -32,6 +37,10 @@ function App() {
           
           <TabsContent value="text" className="mt-0 focus-visible:outline-none focus:outline-none">
             <TextProcessor />
+          </TabsContent>
+
+          <TabsContent value="video" className="mt-0 focus-visible:outline-none focus:outline-none">
+            <VideoProcessor />
           </TabsContent>
         </Tabs>
 
