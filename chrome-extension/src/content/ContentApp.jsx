@@ -105,21 +105,38 @@ const ContentApp = () => {
         };
     }, []);
 
+    const updateInputElement = (el, newText) => {
+        el.focus();
+        
+        if (el.isContentEditable) {
+            // Standard way to update contenteditable for React/Frameworks
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            document.execCommand('insertText', false, newText);
+        } else {
+            // Standard way for input/textarea
+            el.select();
+            document.execCommand('insertText', false, newText);
+        }
+
+        // Final sync for edge cases
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+
     const handleEncryptClick = async (key) => {
         if (!targetElement) return;
         const text = targetElement.isContentEditable ? targetElement.innerText : targetElement.value;
         try {
             const encrypted = await encryptText(text, key.secret, securityCode);
-            if (targetElement.isContentEditable) {
-                targetElement.innerText = encrypted;
-            } else {
-                targetElement.value = encrypted;
-            }
-            // Trigger input event for React-based sites
-            targetElement.dispatchEvent(new Event('input', { bubbles: true }));
+            updateInputElement(targetElement, encrypted);
             setShowEncrypt(false);
             setShowKeyPicker(false);
         } catch (err) {
+            console.error('Encryption error:', err);
             alert('Encryption failed: ' + err.message);
         }
     };
@@ -128,12 +145,17 @@ const ContentApp = () => {
         try {
             const decrypted = await decryptText(targetText, key.secret, securityCode);
             if (targetNode) {
+                // For decryption, we often just want to replace the text node content
+                // as it's usually in a message bubble, not an input.
                 targetNode.textContent = decrypted;
             } else {
-                alert('Decrypted: ' + decrypted);
+                // If it's a manual selection decryption, we can't easily replace 
+                // the node, so we show it in an alert or a custom tooltip.
+                alert('Decrypted Message:\n\n' + decrypted);
             }
             setShowKeyPicker(false);
         } catch (err) {
+            console.error('Decryption error:', err);
             alert('Decryption failed: ' + err.message);
         }
     };
