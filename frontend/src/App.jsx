@@ -4,8 +4,9 @@ import Footer from './components/Footer';
 import ImageProcessor from './components/ImageProcessor/ImageProcessor';
 import TextProcessor from './components/TextProcessor/TextProcessor';
 import VideoProcessor from './components/VideoProcessor/VideoProcessor';
+import DocxProcessor from './components/DocxProcessor/DocxProcessor';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileImage, Type, Video } from 'lucide-react';
+import { FileImage, Type, Video, FileText } from 'lucide-react';
 import Ballpit from '@/components/ui/Ballpit';
 import { useTheme } from './components/ThemeProvider';
 
@@ -24,7 +25,7 @@ function App() {
         
         <Tabs defaultValue="image" className="w-full">
           <div className="flex justify-center mb-6">
-            <TabsList className="grid w-full max-w-md grid-cols-3 h-11 bg-muted/30 p-1 backdrop-blur-sm border border-muted/20 shadow-sm">
+            <TabsList className="grid w-full max-w-2xl grid-cols-4 h-11 bg-muted/30 p-1 backdrop-blur-sm border border-muted/20 shadow-sm">
               <TabsTrigger value="image" className="flex items-center gap-2 font-semibold transition-all data-[state=active]:shadow-md">
                 <FileImage size={16} />
                 Image
@@ -36,6 +37,10 @@ function App() {
               <TabsTrigger value="video" className="flex items-center gap-2 font-semibold transition-all data-[state=active]:shadow-md">
                 <Video size={16} />
                 Video
+              </TabsTrigger>
+              <TabsTrigger value="docx" className="flex items-center gap-2 font-semibold transition-all data-[state=active]:shadow-md">
+                <FileText size={16} />
+                Docx
               </TabsTrigger>
             </TabsList>
           </div>
@@ -51,7 +56,12 @@ function App() {
           <TabsContent value="video" className="mt-0 focus-visible:outline-none focus:outline-none">
             <VideoProcessor />
           </TabsContent>
+
+          <TabsContent value="docx" className="mt-0 focus-visible:outline-none focus:outline-none">
+            <DocxProcessor />
+          </TabsContent>
         </Tabs>
+
 
         <Footer />
       </div>
