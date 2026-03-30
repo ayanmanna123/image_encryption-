@@ -6,6 +6,7 @@ import TextProcessor from './components/TextProcessor/TextProcessor';
 import VideoProcessor from './components/VideoProcessor/VideoProcessor';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileImage, Type, Video } from 'lucide-react';
+import Ballpit from '@/components/ui/Ballpit';
 
 function App() {
   return (
@@ -47,9 +48,17 @@ function App() {
         <Footer />
       </div>
 
-      {/* Background Decorative Blobs */}
-      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/10 blur-[100px] pointer-events-none -z-10" />
-      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-500/10 blur-[100px] pointer-events-none -z-10" />
+      {/* Interactive Ballpit Background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <Ballpit
+          count={100}
+          gravity={0.01}
+          friction={0.9975}
+          wallBounce={0.95}
+          followCursor={false}
+          colors={[0x10b981, 0x6366f1, 0x3b82f6]}
+        />
+      </div>
     </div>
   );
 }
