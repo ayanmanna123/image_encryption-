@@ -22,11 +22,15 @@ const ActionArea = ({
         >
           {isProcessing ? (
             <div className="flex items-center gap-2">
-              <RefreshCw className="spin" size={20} />
+              <RefreshCw className="animate-spin" size={20} />
               Processing...
             </div>
           ) : activeTab === 'encrypt' ? (
             <>Encrypt Now</>
+          ) : activeTab === 'stego_encode' ? (
+            <>Hide Image</>
+          ) : activeTab === 'stego_decode' ? (
+            <>Extract Image</>
           ) : (
             <>Decrypt Now</>
           )}
@@ -35,15 +39,18 @@ const ActionArea = ({
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="w-full space-y-6"
+          className="w-full space-y-4"
         >
           <Alert variant="default" className="bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
             <CheckCircle2 className="h-5 w-5 !text-emerald-500" />
             <AlertTitle className="font-bold">
-              {activeTab === 'encrypt' ? 'Encryption Complete!' : 'Decryption Complete!'}
+              {activeTab === 'encrypt' ? 'Encryption Complete!' : 
+               activeTab === 'stego_encode' ? 'Image Hidden Successfully!' :
+               activeTab === 'stego_decode' ? 'Image Extracted!' :
+               'Decryption Complete!'}
             </AlertTitle>
             <AlertDescription className="text-sm">
-              Your image is ready for download.
+              Your result is ready for download.
             </AlertDescription>
           </Alert>
           
