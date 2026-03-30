@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
-import TabSwitcher from '../ImageProcessor/TabSwitcher';
+import TextTabSwitcher from './TextTabSwitcher';
 import KeyInput from '../ImageProcessor/KeyInput';
 import TextInputArea from './TextInputArea';
 import TextActionArea from './TextActionArea';
@@ -45,7 +45,7 @@ const TextProcessor = () => {
   return (
     <Card className="w-full max-w-xl mx-auto shadow-2xl bg-card/80 backdrop-blur-md border-muted/20 animate-in fade-in zoom-in-95 duration-500">
       <CardHeader className="pb-4">
-        <TabSwitcher 
+        <TextTabSwitcher 
           activeTab={activeTab} 
           onTabChange={(tab) => { setActiveTab(tab); reset(); }} 
         />

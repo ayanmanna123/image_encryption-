@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RefreshCw, Copy, Check, Hash } from 'lucide-react';
+import { RefreshCw, Copy, Check, Hash, Download } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +18,18 @@ const TextActionArea = ({
     navigator.clipboard.writeText(result);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const downloadResult = () => {
+    const blob = new Blob([result], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = activeTab === 'encrypt' ? 'encrypted_message.txt' : 'decrypted_message.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -67,15 +79,26 @@ const TextActionArea = ({
                     {activeTab === 'encrypt' ? 'Encryption Result' : 'Decryption Result'}
                   </span>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={copyToClipboard}
-                  className="h-8 gap-2 text-xs font-semibold hover:bg-emerald-500/10 text-foreground"
-                >
-                  {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                  {copied ? 'Copied!' : 'Copy'}
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={downloadResult}
+                    className="h-8 gap-2 text-xs font-semibold hover:bg-emerald-500/10 text-foreground"
+                  >
+                    <Download size={14} />
+                    Download
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={copyToClipboard}
+                    className="h-8 gap-2 text-xs font-semibold hover:bg-emerald-500/10 text-foreground"
+                  >
+                    {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                    {copied ? 'Copied!' : 'Copy'}
+                  </Button>
+                </div>
               </div>
               <div className="relative group">
                 <Textarea 
