@@ -57,15 +57,14 @@ export async function encryptText(text, password, securityCode = '') {
     const ivB64 = btoa(String.fromCharCode(...iv));
     const ciphertextB64 = btoa(String.fromCharCode(...new Uint8Array(ciphertext)));
 
-    return `ENC::${saltB64}:${ivB64}:${ciphertextB64}`;
+    return `${saltB64}:${ivB64}:${ciphertextB64}`;
 }
 
 /**
  * Decrypts ciphertext using a password and optional security code.
  */
 export async function decryptText(encryptedString, password, securityCode = '') {
-    const cleanString = encryptedString.replace('ENC::', '');
-    const parts = cleanString.split(':');
+    const parts = encryptedString.split(':');
     if (parts.length < 3) {
         throw new Error('Invalid format: Encrypted string is malformed');
     }

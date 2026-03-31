@@ -215,7 +215,10 @@ const ContentApp = () => {
             if (textToDecrypt.startsWith('EMO::')) {
                 // Remove prefix and convert back to Base64
                 textToDecrypt = fromEmoji(textToDecrypt.substring(5));
-            } else if (textToDecrypt.startsWith('ENC::')) {
+            }
+
+            // Standardize: Remove 'ENC::' prefix if it exists (either from start or after emoji conversion)
+            if (textToDecrypt.startsWith('ENC::')) {
                 textToDecrypt = textToDecrypt.substring(5);
             }
 
