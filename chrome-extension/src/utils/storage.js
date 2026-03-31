@@ -6,7 +6,7 @@ const STORAGE_KEYS = {
     SECRET_KEYS: 'secret_keys',
     DEFAULT_ENCRYPT_ID: 'default_encrypt_id',
     DEFAULT_DECRYPT_ID: 'default_decrypt_id',
-    OUTPUT_FORMAT: 'output_format', // 'text' (default) or 'emoji'
+    OUTPUT_FORMAT: 'output_format', // 'text' (default), 'emoji', or 'natural'
     SETTINGS: 'settings',
     SAFE_ZONE: 'safe_zone',
 };

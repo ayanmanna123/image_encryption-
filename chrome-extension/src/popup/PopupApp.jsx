@@ -66,9 +66,30 @@ const PopupApp = () => {
   };
 
   const toggleOutputFormat = async () => {
-    const newVal = outputFormat === 'text' ? 'emoji' : 'text';
+    let newVal;
+    if (outputFormat === 'text') {
+      newVal = 'emoji';
+    } else if (outputFormat === 'emoji') {
+      newVal = 'natural';
+    } else {
+      newVal = 'text';
+    }
     await setOutputFormat(newVal);
     setOutputFormatState(newVal);
+  };
+
+  const getFormatLabel = () => {
+    if (outputFormat === 'text') return '🔠 Text';
+    if (outputFormat === 'emoji') return '😃 Emoji';
+    if (outputFormat === 'natural') return '📝 Natural';
+    return '🔠 Text';
+  };
+
+  const getFormatColor = () => {
+    if (outputFormat === 'text') return '#6366f1';
+    if (outputFormat === 'emoji') return '#8b5cf6';
+    if (outputFormat === 'natural') return '#10b981';
+    return '#6366f1';
   };
 
   return (
@@ -105,9 +126,9 @@ const PopupApp = () => {
             <button 
               className="btn-toggle"
               onClick={toggleOutputFormat}
-              style={{ backgroundColor: outputFormat === 'emoji' ? '#8b5cf6' : '#6366f1', color: 'white' }}
+              style={{ backgroundColor: getFormatColor(), color: 'white' }}
             >
-              {outputFormat === 'text' ? '🔠 Text' : '😃 Emoji'}
+              {getFormatLabel()}
             </button>
           </label>
         </div>

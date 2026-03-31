@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { encryptText, decryptText, toEmoji, fromEmoji } from '../utils/crypto';
+import { encryptText, decryptText, toEmoji, fromEmoji, toNatural, fromNatural, isNaturalHeuristic } from '../utils/crypto';
 import { getAllKeys, getSafeZone, getDefaultEncryptKey, getDefaultDecryptKey, getOutputFormat } from '../utils/storage';
 
 const ContentApp = () => {
@@ -53,7 +53,7 @@ const ContentApp = () => {
                 
                 debounceTimer.current = setTimeout(() => {
                     const value = el.isContentEditable ? el.innerText : el.value;
-                    if (value && value.trim().length > 0 && !value.startsWith('ENC::') && !value.startsWith('EMO::')) {
+                    if (value && value.trim().length > 0 && !value.startsWith('ENC::') && !value.startsWith('EMO::') && !isNaturalHeuristic(value)) {
                         setTargetElement(el);
                         setShowEncrypt(true);
                     } else {
@@ -68,7 +68,7 @@ const ContentApp = () => {
             const el = e.target;
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable) {
                 const value = el.isContentEditable ? el.innerText : el.value;
-                if (value && value.trim().length > 0 && !value.startsWith('ENC::') && !value.startsWith('EMO::')) {
+                if (value && value.trim().length > 0 && !value.startsWith('ENC::') && !value.startsWith('EMO::') && !isNaturalHeuristic(value)) {
                     setTargetElement(el);
                     setShowEncrypt(true);
                 }
@@ -107,34 +107,44 @@ const ContentApp = () => {
              const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
              let node;
              while (node = walker.nextNode()) {
-                 const text = node.textContent;
-                 if (text.includes('ENC::') || text.includes('EMO::')) {
-                     const parent = node.parentElement;
-                     if (parent && !parent.dataset.encBound) {
-                         parent.dataset.encBound = 'true';
-                         
-                         const targetNode = node;
-                         // Capture the full text of the container, NOT just this node
-                         const fullText = parent.textContent.trim();
-                         
-                         parent.addEventListener('mouseenter', () => {
-                             if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
-                             const rect = parent.getBoundingClientRect();
-                             setHoveredTarget({
-                                 id: Math.random().toString(36),
-                                 text: fullText,
-                                 node: targetNode,
-                                 rect: rect,
-                                 parentElement: parent
-                             });
-                         });
+                 const text = node.textContent.trim();
+                 const parent = node.parentElement;
+                 if (!parent || parent.dataset.encBound) continue;
 
-                         parent.addEventListener('mouseleave', () => {
-                             hoverTimeout.current = setTimeout(() => {
-                                 setHoveredTarget(null);
-                             }, 800); // 800ms delay to allow moving mouse to the button
-                         });
+                 let isMatch = false;
+                 let fullText = text;
+
+                 if (text.includes('ENC::') || text.includes('EMO::')) {
+                     isMatch = true;
+                 } else {
+                     // Check if this node or its parent's combined text satisfies the heuristic
+                     fullText = parent.textContent.trim();
+                     if (isNaturalHeuristic(text) || isNaturalHeuristic(fullText)) {
+                         isMatch = true;
                      }
+                 }
+
+                 if (isMatch) {
+                     parent.dataset.encBound = 'true';
+                     const targetNode = node;
+                     
+                     parent.addEventListener('mouseenter', () => {
+                         if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+                         const rect = parent.getBoundingClientRect();
+                         setHoveredTarget({
+                             id: Math.random().toString(36),
+                             text: fullText,
+                             node: targetNode,
+                             rect: rect,
+                             parentElement: parent
+                         });
+                     });
+
+                     parent.addEventListener('mouseleave', () => {
+                         hoverTimeout.current = setTimeout(() => {
+                             setHoveredTarget(null);
+                         }, 800); // 800ms delay to allow moving mouse to the button
+                     });
                  }
              }
         };
@@ -187,9 +197,11 @@ const ContentApp = () => {
             }
             let encrypted = await encryptText(text, encryptionKey.secret, securityCode);
             
-            // Apply Emoji Stealth if selected
+            // Apply Stealth Formats
             if (outputFormat === 'emoji') {
                 encrypted = 'EMO::' + toEmoji(encrypted);
+            } else if (outputFormat === 'natural') {
+                encrypted = toNatural(encrypted);
             } else {
                 encrypted = 'ENC::' + encrypted;
             }
@@ -215,9 +227,12 @@ const ContentApp = () => {
             if (textToDecrypt.startsWith('EMO::')) {
                 // Remove prefix and convert back to Base64
                 textToDecrypt = fromEmoji(textToDecrypt.substring(5));
+            } else if (isNaturalHeuristic(textToDecrypt)) {
+                // Convert back from Natural language to Base64
+                textToDecrypt = fromNatural(textToDecrypt);
             }
 
-            // Standardize: Remove 'ENC::' prefix if it exists (either from start or after emoji conversion)
+            // Standardize: Remove 'ENC::' prefix if it exists (either from start or after format conversion)
             if (textToDecrypt.startsWith('ENC::')) {
                 textToDecrypt = textToDecrypt.substring(5);
             }
