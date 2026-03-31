@@ -8,7 +8,7 @@ const ContentApp = () => {
     const [defaultDecryptKey, setDefaultDecryptKey] = useState(null);
     const [targetElement, setTargetElement] = useState(null);
     const [showEncrypt, setShowEncrypt] = useState(false);
-    const [decryptTargets, setDecryptTargets] = useState([]);
+    const [hoveredTarget, setHoveredTarget] = useState(null); // Single active target
     const [selectedText, setSelectedText] = useState(null);
     const [selectionPoint, setSelectionPoint] = useState(null);
     
@@ -20,6 +20,7 @@ const ContentApp = () => {
     
     const debounceTimer = useRef(null);
     const activeTimeouts = useRef({});
+    const hoverTimeout = useRef(null);
 
     useEffect(() => {
         // Initial data sync
@@ -100,22 +101,36 @@ const ContentApp = () => {
         const scanForDecryption = () => {
              const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
              let node;
-             const newTargets = [];
              while (node = walker.nextNode()) {
                  const text = node.textContent;
                  if (text.includes('ENC::')) {
-                     const rect = node.parentElement.getBoundingClientRect();
-                     if (rect.width > 0 && rect.height > 0) {
-                        newTargets.push({
-                            id: Math.random().toString(36),
-                            text: text.trim(),
-                            node: node,
-                            rect: rect
-                        });
+                     const parent = node.parentElement;
+                     if (parent && !parent.dataset.encBound) {
+                         parent.dataset.encBound = 'true';
+                         
+                         const boundNode = node; // Capture node
+                         const boundText = text.trim();
+
+                         parent.addEventListener('mouseenter', () => {
+                             if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+                             const rect = parent.getBoundingClientRect();
+                             setHoveredTarget({
+                                 id: Math.random().toString(36),
+                                 text: boundText,
+                                 node: boundNode,
+                                 rect: rect,
+                                 parentElement: parent
+                             });
+                         });
+
+                         parent.addEventListener('mouseleave', () => {
+                             hoverTimeout.current = setTimeout(() => {
+                                 setHoveredTarget(null);
+                             }, 800); // 800ms delay to allow moving mouse to the button
+                         });
                      }
                  }
              }
-             setDecryptTargets(newTargets);
         };
 
         const scanInterval = setInterval(() => {
@@ -230,18 +245,20 @@ const ContentApp = () => {
                 />
             )}
 
-            {decryptTargets.map(t => (
+            {hoveredTarget && (
                 <FloatingButton 
-                    key={t.id}
-                    target={t.node.parentElement}
-                    onClick={() => handleDecryptClick(null, t.text, t.node)} // Call without key to use default
-                    onContextMenu={(e) => { e.preventDefault(); openKeyPicker('decrypt', t); }} // Right-click to override
+                    key={hoveredTarget.id}
+                    target={hoveredTarget.parentElement}
+                    onClick={() => handleDecryptClick(null, hoveredTarget.text, hoveredTarget.node)}
+                    onContextMenu={(e) => { e.preventDefault(); openKeyPicker('decrypt', hoveredTarget); }}
                     label="Decrypt"
                     color="#059669"
                     offsetY={-30}
                     offsetX={-60}
+                    onMouseEnter={() => { if (hoverTimeout.current) clearTimeout(hoverTimeout.current); }}
+                    onMouseLeave={() => { setHoveredTarget(null); }}
                 />
-            ))}
+            )}
 
             {selectedText && selectionPoint && (
                  <button
@@ -283,7 +300,7 @@ const ContentApp = () => {
     );
 };
 
-const FloatingButton = ({ target, onClick, onContextMenu, label, color, offsetX = 0, offsetY = 0 }) => {
+const FloatingButton = ({ target, onClick, onContextMenu, onMouseEnter, onMouseLeave, label, color, offsetX = 0, offsetY = 0 }) => {
     const [pos, setPos] = useState({ top: 0, left: 0 });
 
     useEffect(() => {
@@ -321,8 +338,9 @@ const FloatingButton = ({ target, onClick, onContextMenu, label, color, offsetX 
                 transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                 zIndex: 2147483647
             }}
-            onMouseOver={(e) => e.target.style.transform = 'scale(1.1)'}
             onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
             onClick={onClick}
             onContextMenu={onContextMenu}
             title={onContextMenu ? "Click to use default key, Right-click to choose key" : ""}
