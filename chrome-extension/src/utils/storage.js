@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
     SECRET_KEYS: 'secret_keys',
     DEFAULT_KEY_ID: 'default_key_id',
     SETTINGS: 'settings',
+    SAFE_ZONE: 'safe_zone',
 };
 
 /**
@@ -78,4 +79,18 @@ export async function getDefaultKey() {
  */
 export async function setDefaultKey(id) {
     await setInStorage(STORAGE_KEYS.DEFAULT_KEY_ID, id);
+}
+
+/**
+ * Gets the Safe Zone status.
+ */
+export async function getSafeZone() {
+    return (await getFromStorage(STORAGE_KEYS.SAFE_ZONE)) || false;
+}
+
+/**
+ * Sets the Safe Zone status.
+ */
+export async function setSafeZone(status) {
+    await setInStorage(STORAGE_KEYS.SAFE_ZONE, status);
 }

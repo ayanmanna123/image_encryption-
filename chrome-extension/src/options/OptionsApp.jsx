@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { getAllKeys, addKey, deleteKey, setDefaultKey, getFromStorage } from '../utils/storage';
+import { getAllKeys, addKey, deleteKey, setDefaultKey, getFromStorage, getSafeZone, setSafeZone } from '../utils/storage';
 
 const OptionsApp = () => {
+  const [isSafeZone, setIsSafeZone] = useState(false);
   const [keys, setKeys] = useState([]);
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeySecret, setNewKeySecret] = useState('');
@@ -16,6 +16,8 @@ const OptionsApp = () => {
     setKeys(allKeys);
     const defId = await getFromStorage('default_key_id');
     setDefaultKeyId(defId || (allKeys.length > 0 ? allKeys[0].id : null));
+    const safeZone = await getSafeZone();
+    setIsSafeZone(safeZone);
   };
 
   const handleAddKey = async (e) => {
@@ -39,11 +41,35 @@ const OptionsApp = () => {
     setDefaultKeyId(id);
   };
 
+  const toggleSafeZone = async () => {
+    const newStatus = !isSafeZone;
+    await setSafeZone(newStatus);
+    setIsSafeZone(newStatus);
+  };
+
   return (
     <div className="options-container" style={{ maxWidth: '800px', margin: '40px auto', padding: '0 20px' }}>
-      <header style={{ marginBottom: '40px' }}>
-        <h1 style={{ fontSize: '32px' }}>Secure Text Extension - Settings</h1>
-        <p style={{ fontSize: '16px', opacity: 0.8 }}>Manage your encryption keys and security settings</p>
+      <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+            <h1 style={{ fontSize: '32px', margin: 0 }}>Secure Text Extension - Settings</h1>
+            <p style={{ fontSize: '16px', opacity: 0.8, margin: '4px 0 0 0' }}>Manage your encryption keys and security settings</p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+            <button 
+                className={`btn-primary`} 
+                onClick={toggleSafeZone}
+                style={{ 
+                    padding: '12px 24px', 
+                    backgroundColor: isSafeZone ? '#6b7280' : '#10b981',
+                    width: 'auto'
+                }}
+            >
+                {isSafeZone ? '🛡️ Safe Zone: ON' : '🛡️ Safe Zone: OFF'}
+            </button>
+            <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                {isSafeZone ? 'UI is currently hidden on all sites' : 'UI is active on all sites'}
+            </span>
+        </div>
       </header>
 
       <section style={{ marginBottom: '40px' }}>

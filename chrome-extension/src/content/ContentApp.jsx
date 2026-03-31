@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { encryptText, decryptText } from '../utils/crypto';
-import { getDefaultKey, getAllKeys } from '../utils/storage';
+import { getDefaultKey, getAllKeys, getSafeZone } from '../utils/storage';
 
 const ContentApp = () => {
+    const [isSafeZone, setIsSafeZone] = useState(false);
     const [targetElement, setTargetElement] = useState(null);
     const [showEncrypt, setShowEncrypt] = useState(false);
     const [decryptTargets, setDecryptTargets] = useState([]);
@@ -16,10 +17,22 @@ const ContentApp = () => {
     const [securityCode, setSecurityCode] = useState('');
     
     const debounceTimer = useRef(null);
-    const observer = useRef(null);
+    const activeTimeouts = useRef({});
 
     useEffect(() => {
+        // Initial Safe Zone status
+        getSafeZone().then(setIsSafeZone);
+
+        // Listen for storage changes (Safe Zone or other settings)
+        const handleStorageChange = (changes) => {
+            if (changes.safe_zone) {
+                setIsSafeZone(changes.safe_zone.newValue);
+            }
+        };
+        chrome.storage.onChanged.addListener(handleStorageChange);
+
         const handleInput = (e) => {
+            if (isSafeZone) return;
             const el = e.target;
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable) {
                 if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -37,6 +50,7 @@ const ContentApp = () => {
         };
 
         const handleFocus = (e) => {
+            if (isSafeZone) return;
             const el = e.target;
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable) {
                 const value = el.isContentEditable ? el.innerText : el.value;
@@ -58,6 +72,7 @@ const ContentApp = () => {
         };
 
         const handleMouseUp = () => {
+            if (isSafeZone) return;
             const selection = window.getSelection();
             const text = selection.toString().trim();
             if (text && text.length > 5) {
@@ -95,15 +110,20 @@ const ContentApp = () => {
              setDecryptTargets(newTargets);
         };
 
-        const scanInterval = setInterval(scanForDecryption, 2000);
+        const scanInterval = setInterval(() => {
+            if (!isSafeZone) scanForDecryption();
+        }, 2000);
 
         return () => {
+            chrome.storage.onChanged.removeListener(handleStorageChange);
             document.removeEventListener('input', handleInput, true);
             document.removeEventListener('focusin', handleFocus, true);
             document.removeEventListener('mouseup', handleMouseUp);
             clearInterval(scanInterval);
+            // Clear any pending timeouts
+            Object.values(activeTimeouts.current).forEach(clearTimeout);
         };
-    }, []);
+    }, [isSafeZone]);
 
     const updateInputElement = (el, newText) => {
         el.focus();
@@ -145,13 +165,19 @@ const ContentApp = () => {
         try {
             const decrypted = await decryptText(targetText, key.secret, securityCode);
             if (targetNode) {
-                // For decryption, we often just want to replace the text node content
-                // as it's usually in a message bubble, not an input.
+                // Store original encrypted text for re-encryption
+                const originalEncrypted = targetNode.textContent;
                 targetNode.textContent = decrypted;
+
+                // Auto re-encrypt after 5 seconds
+                const timeoutId = setTimeout(() => {
+                    targetNode.textContent = originalEncrypted;
+                    delete activeTimeouts.current[timeoutId];
+                }, 5000);
+                activeTimeouts.current[timeoutId] = timeoutId;
+
             } else {
-                // If it's a manual selection decryption, we can't easily replace 
-                // the node, so we show it in an alert or a custom tooltip.
-                alert('Decrypted Message:\n\n' + decrypted);
+                alert('Decrypted Message (Reverts in 5s):\n\n' + decrypted);
             }
             setShowKeyPicker(false);
         } catch (err) {
@@ -166,6 +192,8 @@ const ContentApp = () => {
         setPickerTarget({ type, extraData });
         setShowKeyPicker(true);
     };
+
+    if (isSafeZone) return null;
 
     return (
         <>

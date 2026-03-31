@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { getAllKeys, addKey, deleteKey, setDefaultKey, getFromStorage } from '../utils/storage';
+import { getAllKeys, addKey, deleteKey, setDefaultKey, getFromStorage, getSafeZone, setSafeZone } from '../utils/storage';
 
 const PopupApp = () => {
+  const [isSafeZone, setIsSafeZone] = useState(false);
   const [keys, setKeys] = useState([]);
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeySecret, setNewKeySecret] = useState('');
@@ -17,6 +17,8 @@ const PopupApp = () => {
     setKeys(allKeys);
     const defId = await getFromStorage('default_key_id');
     setDefaultKeyId(defId || (allKeys.length > 0 ? allKeys[0].id : null));
+    const safeZone = await getSafeZone();
+    setIsSafeZone(safeZone);
   };
 
   const handleAddKey = async (e) => {
@@ -41,6 +43,12 @@ const PopupApp = () => {
     setDefaultKeyId(id);
   };
 
+  const toggleSafeZone = async () => {
+    const newStatus = !isSafeZone;
+    await setSafeZone(newStatus);
+    setIsSafeZone(newStatus);
+  };
+
   return (
     <div className="container">
       <header>
@@ -48,12 +56,24 @@ const PopupApp = () => {
         <p>Manage your encryption keys</p>
       </header>
 
-      <div className="actions">
+      <div className="actions" style={{ display: 'flex', gap: '8px' }}>
         <button 
           className={`btn-primary ${showAdd ? 'btn-danger' : ''}`} 
           onClick={() => setShowAdd(!showAdd)}
+          style={{ flex: 2 }}
         >
-          {showAdd ? 'Cancel' : '+ Add New Key'}
+          {showAdd ? 'Cancel' : '+ Add Key'}
+        </button>
+        <button 
+          className={`btn-primary ${isSafeZone ? 'active' : ''}`} 
+          onClick={toggleSafeZone}
+          style={{ 
+            flex: 1, 
+            backgroundColor: isSafeZone ? '#6b7280' : '#10b981',
+            fontSize: '12px'
+          }}
+        >
+          {isSafeZone ? '🛡️ Safe ON' : '🛡️ Safe OFF'}
         </button>
       </div>
 
