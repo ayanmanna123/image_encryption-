@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllKeys, addKey, deleteKey, setDefaultEncryptKey, setDefaultDecryptKey, getFromStorage, getSafeZone, setSafeZone } from '../utils/storage';
+import { getAllKeys, addKey, deleteKey, setDefaultEncryptKey, setDefaultDecryptKey, getFromStorage, getSafeZone, setSafeZone, getOutputFormat, setOutputFormat } from '../utils/storage';
 
 const PopupApp = () => {
   const [isSafeZone, setIsSafeZone] = useState(false);
@@ -8,6 +8,7 @@ const PopupApp = () => {
   const [newKeySecret, setNewKeySecret] = useState('');
   const [defaultEncryptId, setDefaultEncryptId] = useState(null);
   const [defaultDecryptId, setDefaultDecryptId] = useState(null);
+  const [outputFormat, setOutputFormatState] = useState('text');
   const [showAdd, setShowAdd] = useState(false);
 
   useEffect(() => {
@@ -23,6 +24,9 @@ const PopupApp = () => {
 
     const decId = await getFromStorage('default_decrypt_id');
     setDefaultDecryptId(decId || (allKeys.length > 0 ? allKeys[0].id : null));
+
+    const format = await getOutputFormat();
+    setOutputFormatState(format);
 
     const safeZone = await getSafeZone();
     setIsSafeZone(safeZone);
@@ -56,9 +60,15 @@ const PopupApp = () => {
   };
 
   const toggleSafeZone = async () => {
-    const newStatus = !isSafeZone;
-    await setSafeZone(newStatus);
-    setIsSafeZone(newStatus);
+    const newVal = !isSafeZone;
+    await setSafeZone(newVal);
+    setIsSafeZone(newVal);
+  };
+
+  const toggleOutputFormat = async () => {
+    const newVal = outputFormat === 'text' ? 'emoji' : 'text';
+    await setOutputFormat(newVal);
+    setOutputFormatState(newVal);
   };
 
   return (
@@ -68,25 +78,39 @@ const PopupApp = () => {
         <p>Manage your encryption keys</p>
       </header>
 
-      <div className="actions" style={{ display: 'flex', gap: '8px' }}>
+      <div className="actions" style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
         <button 
           className={`btn-primary ${showAdd ? 'btn-danger' : ''}`} 
           onClick={() => setShowAdd(!showAdd)}
-          style={{ flex: 2 }}
         >
           {showAdd ? 'Cancel' : '+ Add Key'}
         </button>
-        <button 
-          className={`btn-primary ${isSafeZone ? 'active' : ''}`} 
-          onClick={toggleSafeZone}
-          style={{ 
-            flex: 1, 
-            backgroundColor: isSafeZone ? '#6b7280' : '#10b981',
-            fontSize: '12px'
-          }}
-        >
-          {isSafeZone ? '🛡️ Safe ON' : '🛡️ Safe OFF'}
-        </button>
+
+        <div className="safe-zone-toggle" style={{ marginBottom: '12px' }}>
+          <label className="switch-label">
+            <span>Safe Zone (Incognito)</span>
+            <button 
+              className={`btn-toggle ${isSafeZone ? 'active' : ''}`}
+              onClick={toggleSafeZone}
+              style={{ backgroundColor: isSafeZone ? '#6b7280' : '#10b981' }}
+            >
+              {isSafeZone ? 'ON' : 'OFF'}
+            </button>
+          </label>
+        </div>
+
+        <div className="output-format-toggle" style={{ marginBottom: '12px' }}>
+          <label className="switch-label">
+            <span>Output Mode</span>
+            <button 
+              className="btn-toggle"
+              onClick={toggleOutputFormat}
+              style={{ backgroundColor: outputFormat === 'emoji' ? '#8b5cf6' : '#6366f1', color: 'white' }}
+            >
+              {outputFormat === 'text' ? '🔠 Text' : '😃 Emoji'}
+            </button>
+          </label>
+        </div>
       </div>
 
       {showAdd && (

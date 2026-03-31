@@ -64,19 +64,16 @@ export async function encryptText(text, password, securityCode = '') {
  * Decrypts ciphertext using a password and optional security code.
  */
 export async function decryptText(encryptedString, password, securityCode = '') {
-    if (!encryptedString.startsWith('ENC::')) {
-        throw new Error('Invalid format: Missing ENC:: prefix');
-    }
-
-    const parts = encryptedString.split(':');
-    if (parts.length < 5) {
+    const cleanString = encryptedString.replace('ENC::', '');
+    const parts = cleanString.split(':');
+    if (parts.length < 3) {
         throw new Error('Invalid format: Encrypted string is malformed');
     }
 
-    // Parts: ["ENC", "", salt, iv, ciphertext]
-    const salt = new Uint8Array(atob(parts[2]).split('').map(c => c.charCodeAt(0)));
-    const iv = new Uint8Array(atob(parts[3]).split('').map(c => c.charCodeAt(0)));
-    const ciphertext = new Uint8Array(atob(parts[4]).split('').map(c => c.charCodeAt(0)));
+    // Parts: [salt, iv, ciphertext]
+    const salt = new Uint8Array(atob(parts[0]).split('').map(c => c.charCodeAt(0)));
+    const iv = new Uint8Array(atob(parts[1]).split('').map(c => c.charCodeAt(0)));
+    const ciphertext = new Uint8Array(atob(parts[2]).split('').map(c => c.charCodeAt(0)));
 
     const combinedPassword = password + securityCode;
     const key = await deriveKey(combinedPassword, salt);
@@ -89,7 +86,41 @@ export async function decryptText(encryptedString, password, securityCode = '') 
         );
 
         return new TextDecoder().decode(decrypted);
-    } catch (e) {
+    } catch (err) {
         throw new Error('Decryption failed. Incorrect key or security code.');
     }
+}
+
+// Emoji Steganography Mapping
+const B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+const EMOJI_MAP = [
+    "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", 
+    "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", 
+    "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", 
+    "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "😖", "😫", 
+    "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬", "🤯", "😳", 
+    "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤗", "🤔", "🤭", 
+    "🤫", "🤥", "😶", "😐", "💠"
+];
+
+/**
+ * Converts Base64 string to an Emoji string.
+ */
+export function toEmoji(base64) {
+    return base64.split('').map(char => {
+        const index = B64_CHARS.indexOf(char);
+        return index !== -1 ? EMOJI_MAP[index] : char;
+    }).join('');
+}
+
+/**
+ * Converts an Emoji string back to Base64.
+ */
+export function fromEmoji(emojiString) {
+    // Emojis vary in length (some are surrogate pairs), so we use Array.from or spread
+    const emojis = Array.from(emojiString);
+    return emojis.map(emoji => {
+        const index = EMOJI_MAP.indexOf(emoji);
+        return index !== -1 ? B64_CHARS[index] : emoji;
+    }).join('');
 }

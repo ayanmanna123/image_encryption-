@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { encryptText, decryptText } from '../utils/crypto';
-import { getAllKeys, getSafeZone, getDefaultEncryptKey, getDefaultDecryptKey } from '../utils/storage';
+import { encryptText, decryptText, toEmoji, fromEmoji } from '../utils/crypto';
+import { getAllKeys, getSafeZone, getDefaultEncryptKey, getDefaultDecryptKey, getOutputFormat } from '../utils/storage';
 
 const ContentApp = () => {
     const [isSafeZone, setIsSafeZone] = useState(false);
     const [defaultEncryptKey, setDefaultEncryptKey] = useState(null);
     const [defaultDecryptKey, setDefaultDecryptKey] = useState(null);
+    const [outputFormat, setOutputFormat] = useState('text');
     const [targetElement, setTargetElement] = useState(null);
     const [showEncrypt, setShowEncrypt] = useState(false);
     const [hoveredTarget, setHoveredTarget] = useState(null); // Single active target
@@ -27,6 +28,7 @@ const ContentApp = () => {
         getSafeZone().then(setIsSafeZone);
         getDefaultEncryptKey().then(setDefaultEncryptKey);
         getDefaultDecryptKey().then(setDefaultDecryptKey);
+        getOutputFormat().then(setOutputFormat);
 
         // Listen for storage changes (Safe Zone or other settings)
         const handleStorageChange = (changes) => {
@@ -36,6 +38,9 @@ const ContentApp = () => {
             if (changes.default_encrypt_id || changes.default_decrypt_id || changes.secret_keys) {
                 getDefaultEncryptKey().then(setDefaultEncryptKey);
                 getDefaultDecryptKey().then(setDefaultDecryptKey);
+            }
+            if (changes.output_format) {
+                setOutputFormat(changes.output_format.newValue);
             }
         };
         chrome.storage.onChanged.addListener(handleStorageChange);
@@ -48,7 +53,7 @@ const ContentApp = () => {
                 
                 debounceTimer.current = setTimeout(() => {
                     const value = el.isContentEditable ? el.innerText : el.value;
-                    if (value && value.trim().length > 0 && !value.startsWith('ENC::')) {
+                    if (value && value.trim().length > 0 && !value.startsWith('ENC::') && !value.startsWith('EMO::')) {
                         setTargetElement(el);
                         setShowEncrypt(true);
                     } else {
@@ -63,7 +68,7 @@ const ContentApp = () => {
             const el = e.target;
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable) {
                 const value = el.isContentEditable ? el.innerText : el.value;
-                if (value && value.trim().length > 0 && !value.startsWith('ENC::')) {
+                if (value && value.trim().length > 0 && !value.startsWith('ENC::') && !value.startsWith('EMO::')) {
                     setTargetElement(el);
                     setShowEncrypt(true);
                 }
@@ -103,21 +108,22 @@ const ContentApp = () => {
              let node;
              while (node = walker.nextNode()) {
                  const text = node.textContent;
-                 if (text.includes('ENC::')) {
+                 if (text.includes('ENC::') || text.includes('EMO::')) {
                      const parent = node.parentElement;
                      if (parent && !parent.dataset.encBound) {
                          parent.dataset.encBound = 'true';
                          
-                         const boundNode = node; // Capture node
-                         const boundText = text.trim();
-
+                         const targetNode = node;
+                         // Capture the full text of the container, NOT just this node
+                         const fullText = parent.textContent.trim();
+                         
                          parent.addEventListener('mouseenter', () => {
                              if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
                              const rect = parent.getBoundingClientRect();
                              setHoveredTarget({
                                  id: Math.random().toString(36),
-                                 text: boundText,
-                                 node: boundNode,
+                                 text: fullText,
+                                 node: targetNode,
                                  rect: rect,
                                  parentElement: parent
                              });
@@ -179,7 +185,15 @@ const ContentApp = () => {
                 openKeyPicker('encrypt');
                 return;
             }
-            const encrypted = await encryptText(text, encryptionKey.secret, securityCode);
+            let encrypted = await encryptText(text, encryptionKey.secret, securityCode);
+            
+            // Apply Emoji Stealth if selected
+            if (outputFormat === 'emoji') {
+                encrypted = 'EMO::' + toEmoji(encrypted);
+            } else {
+                encrypted = 'ENC::' + encrypted;
+            }
+
             updateInputElement(targetElement, encrypted);
             setShowEncrypt(false);
             setShowKeyPicker(false);
@@ -196,7 +210,16 @@ const ContentApp = () => {
                 openKeyPicker('decrypt', { text: targetText, node: targetNode });
                 return;
             }
-            const decrypted = await decryptText(targetText, decryptionKey.secret, securityCode);
+
+            let textToDecrypt = targetText;
+            if (textToDecrypt.startsWith('EMO::')) {
+                // Remove prefix and convert back to Base64
+                textToDecrypt = fromEmoji(textToDecrypt.substring(5));
+            } else if (textToDecrypt.startsWith('ENC::')) {
+                textToDecrypt = textToDecrypt.substring(5);
+            }
+
+            const decrypted = await decryptText(textToDecrypt, decryptionKey.secret, securityCode);
             if (targetNode) {
                 // Store original encrypted text for re-encryption
                 const originalEncrypted = targetNode.textContent;

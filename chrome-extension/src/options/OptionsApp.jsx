@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllKeys, addKey, deleteKey, setDefaultEncryptKey, setDefaultDecryptKey, getFromStorage, getSafeZone, setSafeZone } from '../utils/storage';
+import { getAllKeys, addKey, deleteKey, setDefaultEncryptKey, setDefaultDecryptKey, getFromStorage, getSafeZone, setSafeZone, getOutputFormat, setOutputFormat } from '../utils/storage';
 
 const OptionsApp = () => {
   const [isSafeZone, setIsSafeZone] = useState(false);
@@ -8,6 +8,7 @@ const OptionsApp = () => {
   const [newKeySecret, setNewKeySecret] = useState('');
   const [defaultEncryptId, setDefaultEncryptId] = useState(null);
   const [defaultDecryptId, setDefaultDecryptId] = useState(null);
+  const [outputFormat, setOutputFormatState] = useState('text');
   
   useEffect(() => {
     loadData();
@@ -22,6 +23,9 @@ const OptionsApp = () => {
 
     const decId = await getFromStorage('default_decrypt_id');
     setDefaultDecryptId(decId || (allKeys.length > 0 ? allKeys[0].id : null));
+
+    const format = await getOutputFormat();
+    setOutputFormatState(format || 'text');
 
     const safeZone = await getSafeZone();
     setIsSafeZone(safeZone);
@@ -57,6 +61,12 @@ const OptionsApp = () => {
     const newStatus = !isSafeZone;
     await setSafeZone(newStatus);
     setIsSafeZone(newStatus);
+  };
+
+  const toggleOutputFormat = async () => {
+    const newVal = outputFormat === 'text' ? 'emoji' : 'text';
+    await setOutputFormat(newVal);
+    setOutputFormatState(newVal);
   };
 
   return (
@@ -173,6 +183,36 @@ const OptionsApp = () => {
                             </div>
                         ))
                     ) }
+                </div>
+
+                <div className="settings-section" style={{ marginTop: '24px', padding: '20px', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                    <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>Global Settings</h2>
+                    <div style={{ display: 'flex', gap: '24px' }}>
+                        <div className="setting-item">
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <span style={{ fontWeight: '500' }}>Safe Zone Mode</span>
+                                <button 
+                                    className={`btn-toggle ${isSafeZone ? 'active' : ''}`}
+                                    onClick={toggleSafeZone}
+                                    style={{ padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', border: 'none', backgroundColor: isSafeZone ? '#6b7280' : '#10b981', color: 'white' }}
+                                >
+                                    {isSafeZone ? 'SHIELD ON' : 'SHIELD OFF'}
+                                </button>
+                            </label>
+                        </div>
+                        <div className="setting-item">
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <span style={{ fontWeight: '500' }}>Output Format (Stealth)</span>
+                                <button 
+                                    className="btn-toggle"
+                                    onClick={toggleOutputFormat}
+                                    style={{ padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', border: 'none', backgroundColor: outputFormat === 'emoji' ? '#8b5cf6' : '#6366f1', color: 'white' }}
+                                >
+                                    {outputFormat === 'text' ? '🔠 Standard Text' : '😃 Emoji Stealth'}
+                                </button>
+                            </label>
+                        </div>
+                    </div>
                 </div>
              </div>
         </div>

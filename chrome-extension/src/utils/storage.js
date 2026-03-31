@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
     SECRET_KEYS: 'secret_keys',
     DEFAULT_ENCRYPT_ID: 'default_encrypt_id',
     DEFAULT_DECRYPT_ID: 'default_decrypt_id',
+    OUTPUT_FORMAT: 'output_format', // 'text' (default) or 'emoji'
     SETTINGS: 'settings',
     SAFE_ZONE: 'safe_zone',
 };
@@ -110,4 +111,18 @@ export async function getSafeZone() {
  */
 export async function setSafeZone(status) {
     await setInStorage(STORAGE_KEYS.SAFE_ZONE, status);
+}
+
+/**
+ * Gets the output format ('text' or 'emoji').
+ */
+export async function getOutputFormat() {
+    return (await getFromStorage(STORAGE_KEYS.OUTPUT_FORMAT)) || 'text';
+}
+
+/**
+ * Sets the output format.
+ */
+export async function setOutputFormat(format) {
+    await setInStorage(STORAGE_KEYS.OUTPUT_FORMAT, format);
 }
