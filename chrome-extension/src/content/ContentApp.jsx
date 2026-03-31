@@ -12,6 +12,7 @@ const ContentApp = () => {
     const [hoveredTarget, setHoveredTarget] = useState(null); // Single active target
     const [selectedText, setSelectedText] = useState(null);
     const [selectionPoint, setSelectionPoint] = useState(null);
+    const [isImproving, setIsImproving] = useState(false);
     
     // UI State
     const [showKeyPicker, setShowKeyPicker] = useState(false);
@@ -215,6 +216,29 @@ const ContentApp = () => {
         }
     };
 
+    const handleImproveClick = async () => {
+        if (!targetElement) return;
+        const text = targetElement.isContentEditable ? targetElement.innerText : targetElement.value;
+        if (!text || text.trim().length === 0) return;
+
+        setIsImproving(true);
+        try {
+            // Send message to background script for Gemini call
+            chrome.runtime.sendMessage({ action: 'IMPROVE_TEXT', text }, (response) => {
+                setIsImproving(false);
+                if (response && response.success) {
+                    updateInputElement(targetElement, response.text);
+                } else {
+                    alert('Improvement failed: ' + (response ? response.error : 'Unknown error'));
+                }
+            });
+        } catch (err) {
+            setIsImproving(false);
+            console.error('Improve error:', err);
+            alert('AI Improvement failed: ' + err.message);
+        }
+    };
+
     const handleDecryptClick = async (key, targetText, targetNode = null) => {
         try {
             const decryptionKey = key || defaultDecryptKey;
@@ -277,13 +301,26 @@ const ContentApp = () => {
     return (
         <>
             {showEncrypt && targetElement && (
-                <FloatingButton 
-                    target={targetElement} 
-                    onClick={() => handleEncryptClick()} // Call without key to use default
-                    onContextMenu={(e) => { e.preventDefault(); openKeyPicker('encrypt'); }} // Right-click to override
-                    label="Encrypt"
-                    color="#4f46e5"
-                />
+                <div style={{ display: 'flex', gap: '4px' }}>
+                    <FloatingButton 
+                        target={targetElement} 
+                        onClick={() => handleImproveClick()}
+                        label={isImproving ? "Improving..." : "AI Improve ✨"}
+                        color="linear-gradient(135deg, #6366f1 0%, #a855f7 100%)"
+                        offsetY={-30}
+                        offsetX={-140}
+                        disabled={isImproving}
+                    />
+                    <FloatingButton 
+                        target={targetElement} 
+                        onClick={() => handleEncryptClick()} // Call without key to use default
+                        onContextMenu={(e) => { e.preventDefault(); openKeyPicker('encrypt'); }} // Right-click to override
+                        label="Encrypt 🔒"
+                        color="#4f46e5"
+                        offsetY={-30}
+                        offsetX={-50}
+                    />
+                </div>
             )}
 
             {hoveredTarget && (
@@ -341,15 +378,15 @@ const ContentApp = () => {
     );
 };
 
-const FloatingButton = ({ target, onClick, onContextMenu, onMouseEnter, onMouseLeave, label, color, offsetX = 0, offsetY = 0 }) => {
+const FloatingButton = ({ target, onClick, onContextMenu, onMouseEnter, onMouseLeave, label, color, offsetX = 0, offsetY = 0, disabled = false }) => {
     const [pos, setPos] = useState({ top: 0, left: 0 });
 
     useEffect(() => {
         const updatePos = () => {
             const rect = target.getBoundingClientRect();
             setPos({
-                top: rect.bottom + window.scrollY + offsetY,
-                left: rect.right + window.scrollX + offsetX - 60
+                top: rect.top + window.scrollY + offsetY,
+                left: rect.right + window.scrollX + offsetX
             });
         };
         updatePos();
@@ -367,22 +404,29 @@ const FloatingButton = ({ target, onClick, onContextMenu, onMouseEnter, onMouseL
                 position: 'absolute',
                 top: pos.top,
                 left: pos.left,
-                backgroundColor: color,
+                background: color.includes('gradient') ? color : color,
+                backgroundColor: color.includes('gradient') ? 'transparent' : color,
                 color: 'white',
                 border: 'none',
-                borderRadius: '4px',
-                padding: '4px 12px',
+                borderRadius: '6px',
+                padding: '6px 14px',
                 fontSize: '12px',
                 fontWeight: '600',
                 cursor: 'pointer',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                zIndex: 2147483647
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                zIndex: 2147483647,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                whiteSpace: 'nowrap'
             }}
-            onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+            onMouseOver={(e) => { e.target.style.transform = 'scale(1.05)'; e.target.style.boxShadow = '0 6px 16px rgba(0,0,0,0.2)'; }}
+            onMouseOut={(e) => { e.target.style.transform = 'scale(1)'; e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'; }}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
-            onClick={onClick}
+            onClick={disabled ? null : onClick}
+            disabled={disabled}
             onContextMenu={onContextMenu}
             title={onContextMenu ? "Click to use default key, Right-click to choose key" : ""}
         >
