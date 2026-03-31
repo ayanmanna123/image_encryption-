@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { getAllKeys, addKey, deleteKey, setDefaultKey, getFromStorage, getSafeZone, setSafeZone } from '../utils/storage';
 
 const PopupApp = () => {
@@ -105,7 +106,21 @@ const PopupApp = () => {
           keys.map(key => (
             <div key={key.id} className={`key-item ${defaultKeyId === key.id ? 'is-default' : ''}`}>
               <div className="key-info">
-                <span className="key-name">{key.name}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="key-name">{key.name}</span>
+                  {defaultKeyId === key.id && (
+                    <span style={{ 
+                      fontSize: '9px', 
+                      backgroundColor: '#e0e7ff', 
+                      color: '#4338ca', 
+                      padding: '2px 6px', 
+                      borderRadius: '10px',
+                      fontWeight: 'bold'
+                    }}>
+                      DEFAULT
+                    </span>
+                  )}
+                </div>
                 <span className="key-date">{new Date(key.createdAt).toLocaleDateString()}</span>
               </div>
               <div className="key-actions">

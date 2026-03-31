@@ -4,6 +4,7 @@ import { getDefaultKey, getAllKeys, getSafeZone } from '../utils/storage';
 
 const ContentApp = () => {
     const [isSafeZone, setIsSafeZone] = useState(false);
+    const [defaultKey, setDefaultKey] = useState(null);
     const [targetElement, setTargetElement] = useState(null);
     const [showEncrypt, setShowEncrypt] = useState(false);
     const [decryptTargets, setDecryptTargets] = useState([]);
@@ -20,13 +21,17 @@ const ContentApp = () => {
     const activeTimeouts = useRef({});
 
     useEffect(() => {
-        // Initial Safe Zone status
+        // Initial data sync
         getSafeZone().then(setIsSafeZone);
+        getDefaultKey().then(setDefaultKey);
 
         // Listen for storage changes (Safe Zone or other settings)
         const handleStorageChange = (changes) => {
             if (changes.safe_zone) {
                 setIsSafeZone(changes.safe_zone.newValue);
+            }
+            if (changes.default_key_id || changes.secret_keys) {
+                getDefaultKey().then(setDefaultKey);
             }
         };
         chrome.storage.onChanged.addListener(handleStorageChange);
@@ -151,7 +156,12 @@ const ContentApp = () => {
         if (!targetElement) return;
         const text = targetElement.isContentEditable ? targetElement.innerText : targetElement.value;
         try {
-            const encrypted = await encryptText(text, key.secret, securityCode);
+            const encryptionKey = key || defaultKey;
+            if (!encryptionKey) {
+                openKeyPicker('encrypt');
+                return;
+            }
+            const encrypted = await encryptText(text, encryptionKey.secret, securityCode);
             updateInputElement(targetElement, encrypted);
             setShowEncrypt(false);
             setShowKeyPicker(false);
@@ -163,7 +173,12 @@ const ContentApp = () => {
 
     const handleDecryptClick = async (key, targetText, targetNode = null) => {
         try {
-            const decrypted = await decryptText(targetText, key.secret, securityCode);
+            const decryptionKey = key || defaultKey;
+            if (!decryptionKey) {
+                openKeyPicker('decrypt', { text: targetText, node: targetNode });
+                return;
+            }
+            const decrypted = await decryptText(targetText, decryptionKey.secret, securityCode);
             if (targetNode) {
                 // Store original encrypted text for re-encryption
                 const originalEncrypted = targetNode.textContent;
@@ -182,7 +197,12 @@ const ContentApp = () => {
             setShowKeyPicker(false);
         } catch (err) {
             console.error('Decryption error:', err);
-            alert('Decryption failed: ' + err.message);
+            // If it failed with the default key, the secret might be wrong
+            if (!key && defaultKey) {
+                alert('Decryption failed with your default key. This message might be encrypted with a different key.');
+            } else {
+                alert('Decryption failed: ' + err.message);
+            }
         }
     };
 
@@ -200,7 +220,8 @@ const ContentApp = () => {
             {showEncrypt && targetElement && (
                 <FloatingButton 
                     target={targetElement} 
-                    onClick={() => openKeyPicker('encrypt')}
+                    onClick={() => handleEncryptClick()} // Call without key to use default
+                    onContextMenu={(e) => { e.preventDefault(); openKeyPicker('encrypt'); }} // Right-click to override
                     label="Encrypt"
                     color="#4f46e5"
                 />
@@ -210,7 +231,8 @@ const ContentApp = () => {
                 <FloatingButton 
                     key={t.id}
                     target={t.node.parentElement}
-                    onClick={() => openKeyPicker('decrypt', t)}
+                    onClick={() => handleDecryptClick(null, t.text, t.node)} // Call without key to use default
+                    onContextMenu={(e) => { e.preventDefault(); openKeyPicker('decrypt', t); }} // Right-click to override
                     label="Decrypt"
                     color="#059669"
                     offsetY={-30}
@@ -233,7 +255,7 @@ const ContentApp = () => {
                         cursor: 'pointer',
                         zIndex: 2147483647
                     }}
-                    onClick={() => openKeyPicker('decrypt', { text: selectedText })}
+                    onClick={() => handleDecryptClick(null, selectedText)} // Call without key to use default
                  >
                     Decrypt Selected
                  </button>
@@ -258,7 +280,7 @@ const ContentApp = () => {
     );
 };
 
-const FloatingButton = ({ target, onClick, label, color, offsetX = 0, offsetY = 0 }) => {
+const FloatingButton = ({ target, onClick, onContextMenu, label, color, offsetX = 0, offsetY = 0 }) => {
     const [pos, setPos] = useState({ top: 0, left: 0 });
 
     useEffect(() => {
@@ -299,6 +321,8 @@ const FloatingButton = ({ target, onClick, label, color, offsetX = 0, offsetY = 
             onMouseOver={(e) => e.target.style.transform = 'scale(1.1)'}
             onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
             onClick={onClick}
+            onContextMenu={onContextMenu}
+            title={onContextMenu ? "Click to use default key, Right-click to choose key" : ""}
         >
             {label}
         </button>

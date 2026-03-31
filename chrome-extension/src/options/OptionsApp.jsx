@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { getAllKeys, addKey, deleteKey, setDefaultKey, getFromStorage, getSafeZone, setSafeZone } from '../utils/storage';
 
 const OptionsApp = () => {
@@ -109,7 +110,22 @@ const OptionsApp = () => {
                         keys.map(key => (
                             <div key={key.id} className={`key-item ${defaultKeyId === key.id ? 'is-default' : ''}`} style={{ marginBottom: '12px' }}>
                                 <div className="key-info">
-                                    <span className="key-name" style={{ fontSize: '16px' }}>{key.name}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <span className="key-name" style={{ fontSize: '18px' }}>{key.name}</span>
+                                        {defaultKeyId === key.id && (
+                                            <span style={{ 
+                                                fontSize: '11px', 
+                                                backgroundColor: '#e0e7ff', 
+                                                color: '#4338ca', 
+                                                padding: '4px 10px', 
+                                                borderRadius: '12px',
+                                                fontWeight: 'bold',
+                                                letterSpacing: '0.5px'
+                                            }}>
+                                                ACTIVE DEFAULT KEY
+                                            </span>
+                                        )}
+                                    </div>
                                     <span className="key-id" style={{ fontSize: '11px', opacity: 0.6 }}>ID: {key.id}</span>
                                     <span className="key-date">Added: {new Date(key.createdAt).toLocaleString()}</span>
                                 </div>
