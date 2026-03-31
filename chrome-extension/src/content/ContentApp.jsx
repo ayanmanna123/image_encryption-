@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { encryptText, decryptText } from '../utils/crypto';
-import { getDefaultKey, getAllKeys, getSafeZone } from '../utils/storage';
+import { getAllKeys, getSafeZone, getDefaultEncryptKey, getDefaultDecryptKey } from '../utils/storage';
 
 const ContentApp = () => {
     const [isSafeZone, setIsSafeZone] = useState(false);
-    const [defaultKey, setDefaultKey] = useState(null);
+    const [defaultEncryptKey, setDefaultEncryptKey] = useState(null);
+    const [defaultDecryptKey, setDefaultDecryptKey] = useState(null);
     const [targetElement, setTargetElement] = useState(null);
     const [showEncrypt, setShowEncrypt] = useState(false);
     const [decryptTargets, setDecryptTargets] = useState([]);
@@ -23,15 +24,17 @@ const ContentApp = () => {
     useEffect(() => {
         // Initial data sync
         getSafeZone().then(setIsSafeZone);
-        getDefaultKey().then(setDefaultKey);
+        getDefaultEncryptKey().then(setDefaultEncryptKey);
+        getDefaultDecryptKey().then(setDefaultDecryptKey);
 
         // Listen for storage changes (Safe Zone or other settings)
         const handleStorageChange = (changes) => {
             if (changes.safe_zone) {
                 setIsSafeZone(changes.safe_zone.newValue);
             }
-            if (changes.default_key_id || changes.secret_keys) {
-                getDefaultKey().then(setDefaultKey);
+            if (changes.default_encrypt_id || changes.default_decrypt_id || changes.secret_keys) {
+                getDefaultEncryptKey().then(setDefaultEncryptKey);
+                getDefaultDecryptKey().then(setDefaultDecryptKey);
             }
         };
         chrome.storage.onChanged.addListener(handleStorageChange);
@@ -156,7 +159,7 @@ const ContentApp = () => {
         if (!targetElement) return;
         const text = targetElement.isContentEditable ? targetElement.innerText : targetElement.value;
         try {
-            const encryptionKey = key || defaultKey;
+            const encryptionKey = key || defaultEncryptKey;
             if (!encryptionKey) {
                 openKeyPicker('encrypt');
                 return;
@@ -173,7 +176,7 @@ const ContentApp = () => {
 
     const handleDecryptClick = async (key, targetText, targetNode = null) => {
         try {
-            const decryptionKey = key || defaultKey;
+            const decryptionKey = key || defaultDecryptKey;
             if (!decryptionKey) {
                 openKeyPicker('decrypt', { text: targetText, node: targetNode });
                 return;
@@ -198,7 +201,7 @@ const ContentApp = () => {
         } catch (err) {
             console.error('Decryption error:', err);
             // If it failed with the default key, the secret might be wrong
-            if (!key && defaultKey) {
+            if (!key && defaultDecryptKey) {
                 alert('Decryption failed with your default key. This message might be encrypted with a different key.');
             } else {
                 alert('Decryption failed: ' + err.message);

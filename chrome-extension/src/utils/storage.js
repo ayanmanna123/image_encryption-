@@ -4,7 +4,8 @@
 
 const STORAGE_KEYS = {
     SECRET_KEYS: 'secret_keys',
-    DEFAULT_KEY_ID: 'default_key_id',
+    DEFAULT_ENCRYPT_ID: 'default_encrypt_id',
+    DEFAULT_DECRYPT_ID: 'default_decrypt_id',
     SETTINGS: 'settings',
     SAFE_ZONE: 'safe_zone',
 };
@@ -64,21 +65,37 @@ export async function deleteKey(id) {
 }
 
 /**
- * Gets the default key or first available key.
+ * Gets the default ENCRYPTION key.
  */
-export async function getDefaultKey() {
+export async function getDefaultEncryptKey() {
     const keys = await getAllKeys();
     if (keys.length === 0) return null;
-    
-    const defaultId = await getFromStorage(STORAGE_KEYS.DEFAULT_KEY_ID);
-    return keys.find(k => k.id === defaultId) || keys[0];
+    const id = await getFromStorage(STORAGE_KEYS.DEFAULT_ENCRYPT_ID);
+    return keys.find(k => k.id === id) || keys[0];
 }
 
 /**
- * Sets the default key by ID.
+ * Gets the default DECRYPTION key.
  */
-export async function setDefaultKey(id) {
-    await setInStorage(STORAGE_KEYS.DEFAULT_KEY_ID, id);
+export async function getDefaultDecryptKey() {
+    const keys = await getAllKeys();
+    if (keys.length === 0) return null;
+    const id = await getFromStorage(STORAGE_KEYS.DEFAULT_DECRYPT_ID);
+    return keys.find(k => k.id === id) || keys[0];
+}
+
+/**
+ * Sets the default encryption key by ID.
+ */
+export async function setDefaultEncryptKey(id) {
+    await setInStorage(STORAGE_KEYS.DEFAULT_ENCRYPT_ID, id);
+}
+
+/**
+ * Sets the default decryption key by ID.
+ */
+export async function setDefaultDecryptKey(id) {
+    await setInStorage(STORAGE_KEYS.DEFAULT_DECRYPT_ID, id);
 }
 
 /**

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { getAllKeys, addKey, deleteKey, setDefaultKey, getFromStorage, getSafeZone, setSafeZone } from '../utils/storage';
+import { getAllKeys, addKey, deleteKey, setDefaultEncryptKey, setDefaultDecryptKey, getFromStorage, getSafeZone, setSafeZone } from '../utils/storage';
 
 const PopupApp = () => {
   const [isSafeZone, setIsSafeZone] = useState(false);
   const [keys, setKeys] = useState([]);
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeySecret, setNewKeySecret] = useState('');
-  const [defaultKeyId, setDefaultKeyId] = useState(null);
+  const [defaultEncryptId, setDefaultEncryptId] = useState(null);
+  const [defaultDecryptId, setDefaultDecryptId] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
 
   useEffect(() => {
@@ -16,8 +17,13 @@ const PopupApp = () => {
   const loadData = async () => {
     const allKeys = await getAllKeys();
     setKeys(allKeys);
-    const defId = await getFromStorage('default_key_id');
-    setDefaultKeyId(defId || (allKeys.length > 0 ? allKeys[0].id : null));
+    
+    const encId = await getFromStorage('default_encrypt_id');
+    setDefaultEncryptId(encId || (allKeys.length > 0 ? allKeys[0].id : null));
+
+    const decId = await getFromStorage('default_decrypt_id');
+    setDefaultDecryptId(decId || (allKeys.length > 0 ? allKeys[0].id : null));
+
     const safeZone = await getSafeZone();
     setIsSafeZone(safeZone);
   };
@@ -39,9 +45,14 @@ const PopupApp = () => {
     }
   };
 
-  const handleSetDefault = async (id) => {
-    await setDefaultKey(id);
-    setDefaultKeyId(id);
+  const handleSetDefaultEncrypt = async (id) => {
+    await setDefaultEncryptKey(id);
+    setDefaultEncryptId(id);
+  };
+
+  const handleSetDefaultDecrypt = async (id) => {
+    await setDefaultDecryptKey(id);
+    setDefaultDecryptId(id);
   };
 
   const toggleSafeZone = async () => {
@@ -104,29 +115,52 @@ const PopupApp = () => {
           </div>
         ) : (
           keys.map(key => (
-            <div key={key.id} className={`key-item ${defaultKeyId === key.id ? 'is-default' : ''}`}>
+            <div key={key.id} className={`key-item ${defaultEncryptId === key.id || defaultDecryptId === key.id ? 'is-default' : ''}`}>
               <div className="key-info">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
                   <span className="key-name">{key.name}</span>
-                  {defaultKeyId === key.id && (
+                  {defaultEncryptId === key.id && (
                     <span style={{ 
-                      fontSize: '9px', 
+                      fontSize: '8px', 
                       backgroundColor: '#e0e7ff', 
                       color: '#4338ca', 
-                      padding: '2px 6px', 
-                      borderRadius: '10px',
+                      padding: '1px 4px', 
+                      borderRadius: '4px',
                       fontWeight: 'bold'
                     }}>
-                      DEFAULT
+                      ENC
+                    </span>
+                  )}
+                  {defaultDecryptId === key.id && (
+                    <span style={{ 
+                      fontSize: '8px', 
+                      backgroundColor: '#d1fae5', 
+                      color: '#047857', 
+                      padding: '1px 4px', 
+                      borderRadius: '4px',
+                      fontWeight: 'bold'
+                    }}>
+                      DEC
                     </span>
                   )}
                 </div>
                 <span className="key-date">{new Date(key.createdAt).toLocaleDateString()}</span>
               </div>
-              <div className="key-actions">
-                {defaultKeyId !== key.id && (
-                  <button onClick={() => handleSetDefault(key.id)} title="Set as default">★</button>
-                )}
+              <div className="key-actions" style={{ gap: '4px' }}>
+                <button 
+                  onClick={() => handleSetDefaultEncrypt(key.id)} 
+                  title="Set Default Encryption"
+                  style={{ opacity: defaultEncryptId === key.id ? 1 : 0.3 }}
+                >
+                  🔒
+                </button>
+                <button 
+                  onClick={() => handleSetDefaultDecrypt(key.id)} 
+                  title="Set Default Decryption"
+                  style={{ opacity: defaultDecryptId === key.id ? 1 : 0.3 }}
+                >
+                  🔓
+                </button>
                 <button onClick={() => handleDeleteKey(key.id)} className="btn-delete" title="Delete key">🗑</button>
               </div>
             </div>
